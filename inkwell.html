@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inkwell</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px; /* Adjust this to your desired width */
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            overflow: hidden;
+        }
+        .canvas-area {
+            flex: 1;
+            position: relative; /* For positioning the canvas */
+        }
+        #drawing-canvas {
+            width: 100%; /* Canvas fills the canvas-area */
+            height: 500px; /* Adjust this to your desired height */
+        }
+        .sidebar {
+            width: 300px; /* Adjust this to your desired sidebar width */
+            padding: 20px;
+        }
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .color-box {
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .color-box:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background-color: #3e8e41;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Stronger shadow on hover */
+        }
+        .frame-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .tool-select {
+            margin-right: 10px;
+        }
+        .frame-duration {
+            margin-left: 10px;
+        }
+        .frame-controls, .color-palette, .button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .frame-controls label, .button-container label {
+            margin-right: 10px;
+        }
+        .frame-duration input, .button-container input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-area">
+            <canvas id="drawing-canvas" width="600" height="400"></canvas>
+        </div>
+        <div class="sidebar">
+            <div class="frame-controls">
+                <button id="prev-frame">Previous Frame</button>
+                <span id="current-frame">1</span>
+                <button id="next-frame">Next Frame</button>
+                <label for="frame-duration" class="frame-duration">Frame Duration (ms):</label>
+                <input type="number" id="frame-duration" value="100" min="1">
+            </div>
+            <div class="color-palette">
+                <div class="color-box" style="background-color: #FF69B4;" data-color="#FF69B4"></div>
+                <div class="color-box" style="background-color: #33CC33;" data-color="#33CC33"></div>
+                <div class="color-box" style="background-color: #6666CC;" data-color="#6666CC"></div>
+                <div class="color-box" style="background-color: #CC3333;" data-color="#CC3333"></div>
+                <div class="color-box" style="background-color: #CCCC33;" data-color="#CCCC33"></div>
+            </div>
+            <div class="button-container">
+                <button id="clear-button">Clear</button>
+                <button id="play-button">Play</button>
+                <button id="stop-button" disabled>Stop</button>
+                <label for="tool-select">Tool:</label>
+                <select id="tool-select" class="tool-select">
+                    <option value="pencil">Pencil</option>
+                    <option value="eraser">Eraser</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let canvas = document.getElementById('drawing-canvas');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let color = '#FF69B4';
+        let animationFrames = [];
+        let animationInterval;
+        let currentFrame = 0;
+        let currentTool = 'pencil'; // Default tool
+        let frameDuration = 100; // Default frame duration in milliseconds
+
+        const toolSelect = document.getElementById('tool-select');
+        toolSelect.addEventListener('change', (event) => {
+            currentTool = event.target.value;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            let x = e.offsetX;
+            let y = e.offsetY;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                let x = e.offsetX;
+                let y = e.offsetY;
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = color;
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+            // Add the current frame to the animationFrames array
+            animationFrames[currentFrame] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            currentFrame++;
+            document.getElementById('current-frame').textContent = currentFrame;
+        });
+
+        document.querySelectorAll('.color-box').forEach((box) => {
+            box.addEventListener('click', () => {
+                color = box.getAttribute('data-color');
+                // Move to the next frame when a color is selected
+                if (animationFrames.length > 0) {
+                    currentFrame = (currentFrame + 1) % animationFrames.length;
+                    document.getElementById('current-frame').textContent = currentFrame + 1;
+                    // Draw the current frame on the canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (animationFrames[currentFrame]) {
+                        ctx.putImageData(animationFrames[currentFrame], 0, 0);
+                    }
+                } else {
+                    // If no frames exist yet, create a new one
+                    animationFrames[currentFrame] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                }
+            });
+        });
+
+        document.getElementById('clear-button').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            animationFrames = [];
+            currentFrame = 0;
+            document.getElementById('current-frame').textContent = currentFrame;
+        });
+
+        document.getElementById('play-button').addEventListener('click', () => {
+            frameDuration = parseInt(document.getElementById('frame-duration').value);
+            animationInterval = setInterval(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (animationFrames[currentFrame]) {
+                    ctx.putImageData(animationFrames[currentFrame], 0, 0);
+                }
+                currentFrame = (currentFrame + 1) % animationFrames.length;
+                document.getElementById('current-frame').textContent = currentFrame + 1;
+            }, frameDuration);
+            document.getElementById('play-button').disabled = true;
+            document.getElementById('stop-button').disabled = false;
+        });
+
+        document.getElementById('stop-button').addEventListener('click', () => {
+            clearInterval(animationInterval);
+            document.getElementById('play-button').disabled = false;
+            document.getElementById('stop-button').disabled = true;
+        });
+
+        document.getElementById('prev-frame').addEventListener('click', () => {
+            // Corrected logic here:
+            if (animationFrames.length > 0) {
+                currentFrame = (currentFrame - 1 + animationFrames.length) % animationFrames.length;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (animationFrames[currentFrame]) {
+                    ctx.putImageData(animationFrames[currentFrame], 0, 0);
+                }
+                document.getElementById('current-frame').textContent = currentFrame + 1;
+            }
+        });
+
+        document.getElementById('next-frame').addEventListener('click', () => {
+            // Corrected logic here:
+            if (animationFrames.length > 0) {
+                currentFrame = (currentFrame + 1) % animationFrames.length;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (animationFrames[currentFrame]) {
+                    ctx.putImageData(animationFrames[currentFrame], 0, 0);
+                }
+                document.getElementById('current-frame').textContent = currentFrame + 1;
+            }
+        });
+    </script>
+</body>
+</html>
