@@ -1,6 +1,6 @@
-# Flipaclip-like Animation App
+# Inkwell
 
-This project is a simple web-based animation app inspired by Flipaclip, allowing users to create frame-by-frame animations.
+This project is a simple web-based animation app inspired by The Wick Editor, allowing users to create frame-by-frame animations.
 
 ## Features
 
